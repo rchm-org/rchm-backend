@@ -34,14 +34,8 @@ const admissionSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "contacted", "closed"],
+      enum: ["pending", "contacted", "approved", "archived"],
       default: "pending",
-    },
-
-    // ✅ NEW FIELD (this is the key)
-    archived: {
-      type: Boolean,
-      default: false,
     },
   },
   { timestamps: true }
