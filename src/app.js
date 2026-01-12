@@ -34,6 +34,11 @@ app.use("/api/admin/admissions", adminAdmissionRoutes);
 // 🔐 Admin auth
 app.use("/api/admin/auth", adminAuthRoutes);
 
+app.get("/api/health", (req, res) => {
+   res.json({ status: "ok", message: "Backend is alive🚀" });
+});
+
+
 
 // 🩺 He
 export default app;
