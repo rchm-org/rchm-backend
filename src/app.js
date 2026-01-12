@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 
-// routes
+// Routes
 import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import admissionRoutes from "./routes/admissionRoutes.js";
 import adminAdmissionRoutes from "./routes/adminAdmissionRoutes.js";
@@ -13,57 +13,55 @@ const app = express();
    CORS (PRODUCTION SAFE)
 ======================= */
 const allowedOrigins = [
-  "http://localhost:5173", // local dev
+  "http://localhost:5173",
+  "https://rchm-admissions-frontend.vercel.app",
 ];
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow server-to-server, Postman, curl
+    origin(origin, callback) {
+      // Allow server-to-server & tools
       if (!origin) return callback(null, true);
 
-      // ✅ Allow all Vercel deployments (preview + prod)
-      if (
-        origin.endsWith(".vercel.app") ||
-        allowedOrigins.includes(origin)
-      ) {
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      return callback(
-        new Error(`CORS blocked for origin: ${origin}`)
-      );
+      return callback(new Error(`CORS blocked: ${origin}`));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// ❌ DO NOT add app.options("*", cors()) — breaks preflight
 app.use(express.json());
 
 /* =======================
    STATIC FILES
 ======================= */
-app.use(
-  "/uploads",
-  express.static(path.join(process.cwd(), "uploads"))
-);
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 /* =======================
    ROUTES
 ======================= */
-
-// 🔓 Public
 app.use("/api/admissions", admissionRoutes);
-
-// 🔐 Admin
-app.use("/api/admin/admissions", adminAdmissionRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
+app.use("/api/admin/admissions", adminAdmissionRoutes);
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Backend is alive 🚀" });
+/* =======================
+   HEALTH
+======================= */
+app.get("/api/health", (_, res) => {
+  res.json({ status: "ok", message: "Backend alive 🚀" });
+});
+
+/* =======================
+   ERROR HANDLER (MANDATORY)
+======================= */
+app.use((err, req, res, next) => {
+  console.error("❌ ERROR:", err.message);
+  res.status(500).json({ message: err.message || "Server error" });
 });
 
 export default app;

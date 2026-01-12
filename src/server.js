@@ -6,29 +6,16 @@ import app from "./app.js";
 
 const PORT = process.env.PORT || 5000;
 
-const start = async () => {
+(async function start() {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      autoIndex: false, // safer for production
-    });
-
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB connected");
 
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
     });
-
-    // Graceful shutdown
-    process.on("SIGINT", async () => {
-      console.log("🛑 Shutting down...");
-      await mongoose.connection.close();
-      server.close(() => process.exit(0));
-    });
-
   } catch (err) {
-    console.error("❌ Server failed to start:", err);
+    console.error("❌ Startup failed:", err);
     process.exit(1);
   }
-};
-
-start();
+})();
