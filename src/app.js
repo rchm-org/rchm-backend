@@ -6,40 +6,36 @@ import path from "path";
 import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import admissionRoutes from "./routes/admissionRoutes.js";
 import adminAdmissionRoutes from "./routes/adminAdmissionRoutes.js";
-import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
 
 /* =======================
-   CORS CONFIG (PRODUCTION SAFE)
+   CORS (FIXED)
 ======================= */
 const allowedOrigins = [
-  "https://rchm-admissions-frontend-1r10ifftz.vercel.app",
-  "https://rchm-admissions-frontend.vercel.app",
   "http://localhost:5173",
+  "https://rchm-admissions-frontend-mi9iwfjes.vercel.app",
 ];
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // Postman / server-to-server
+    origin: function (origin, callback) {
+      // allow server-to-server / Postman / curl
+      if (!origin) return callback(null, true);
+
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error("Not allowed by CORS"));
+
+      callback(new Error("Not allowed by CORS"));
     },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
   })
 );
 
-// 🔑 Handle preflight requests explicitly
-app.options("*", cors());
-
-/* =======================
-   GLOBAL MIDDLEWARES
-======================= */
+// ⚠️ IMPORTANT: DO NOT add app.options("*", cors())
 app.use(express.json());
 
 /* =======================
@@ -51,21 +47,15 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
    ROUTES
 ======================= */
 
-// 🔓 Public
+// Public
 app.use("/api/admissions", admissionRoutes);
 
-// 🔐 Admin
+// Admin
 app.use("/api/admin/admissions", adminAdmissionRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
 
-// 🩺 Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Backend is alive 🚀" });
 });
-
-/* =======================
-   ERROR HANDLER (MUST BE LAST)
-======================= */
-app.use(errorHandler);
 
 export default app;
