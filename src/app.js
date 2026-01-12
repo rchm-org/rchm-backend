@@ -14,7 +14,17 @@ const app = express();
 /* =======================
    GLOBAL MIDDLEWARES
 ======================= */
-app.use(cors());
+app.use(
+   cors({
+      origin: [
+         "http://localhost:5173",
+         "https://rchm-admissions-frontend.vercel.app"
+      ],
+      methods: ["GET", "POST", "PATCH", "DELETE"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+   })
+);
+
 app.use(express.json());
 
 /* =======================
