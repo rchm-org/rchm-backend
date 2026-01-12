@@ -37,6 +37,13 @@ const admissionSchema = new mongoose.Schema(
       enum: ["pending", "contacted", "approved", "archived"],
       default: "pending",
     },
+
+    referenceId: {
+      type: String,
+      unique: true,
+      index: true,
+    },
+
   },
   { timestamps: true }
 );
