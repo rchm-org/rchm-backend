@@ -10,24 +10,29 @@ import adminAdmissionRoutes from "./routes/adminAdmissionRoutes.js";
 const app = express();
 
 /* =======================
-   CORS (FIXED)
+   CORS (PRODUCTION SAFE)
 ======================= */
 const allowedOrigins = [
-  "http://localhost:5173",
-  "https://rchm-admissions-frontend-mi9iwfjes.vercel.app",
+  "http://localhost:5173", // local dev
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow server-to-server / Postman / curl
+      // Allow server-to-server, Postman, curl
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
+      // ✅ Allow all Vercel deployments (preview + prod)
+      if (
+        origin.endsWith(".vercel.app") ||
+        allowedOrigins.includes(origin)
+      ) {
         return callback(null, true);
       }
 
-      callback(new Error("Not allowed by CORS"));
+      return callback(
+        new Error(`CORS blocked for origin: ${origin}`)
+      );
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -35,22 +40,25 @@ app.use(
   })
 );
 
-// ⚠️ IMPORTANT: DO NOT add app.options("*", cors())
+// ❌ DO NOT add app.options("*", cors()) — breaks preflight
 app.use(express.json());
 
 /* =======================
    STATIC FILES
 ======================= */
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "uploads"))
+);
 
 /* =======================
    ROUTES
 ======================= */
 
-// Public
+// 🔓 Public
 app.use("/api/admissions", admissionRoutes);
 
-// Admin
+// 🔐 Admin
 app.use("/api/admin/admissions", adminAdmissionRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
 
