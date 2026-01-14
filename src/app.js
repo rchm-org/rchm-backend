@@ -2,15 +2,18 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 
-// routes
+// Routes
 import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import admissionRoutes from "./routes/admissionRoutes.js";
 import adminAdmissionRoutes from "./routes/adminAdmissionRoutes.js";
 
+// Error handler
+import { errorHandler } from "./middlewares/errorHandler.js";
+
 const app = express();
 
 /* =======================
-   CORS (PRODUCTION SAFE)
+   CORS (HARDENED)
 ======================= */
 const allowedOrigins = [
   "http://localhost:5173", // local dev
@@ -18,11 +21,11 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow server-to-server, Postman, curl
+    origin: (origin, callback) => {
+      // Allow server-to-server / curl / Postman
       if (!origin) return callback(null, true);
 
-      // ✅ Allow all Vercel deployments (preview + prod)
+      // Allow Vercel previews + allowed list
       if (
         origin.endsWith(".vercel.app") ||
         allowedOrigins.includes(origin)
@@ -30,25 +33,38 @@ app.use(
         return callback(null, true);
       }
 
-      return callback(
-        new Error(`CORS blocked for origin: ${origin}`)
-      );
+      // Reject silently (do NOT throw)
+      return callback(null, false);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204,
   })
 );
 
-// ❌ DO NOT add app.options("*", cors()) — breaks preflight
-app.use(express.json());
+/* =======================
+   BODY PARSER (LIMITED)
+======================= */
+app.use(
+  express.json({
+    limit: "100kb", // prevent large JSON attacks
+  })
+);
 
 /* =======================
-   STATIC FILES
+   STATIC FILES (SAFE)
 ======================= */
 app.use(
   "/uploads",
-  express.static(path.join(process.cwd(), "uploads"))
+  express.static(path.join(process.cwd(), "uploads"), {
+    index: false,          // no directory listing
+    dotfiles: "ignore",    // block .env, .gitignore, etc
+    maxAge: "1d",
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+    },
+  })
 );
 
 /* =======================
@@ -59,11 +75,20 @@ app.use(
 app.use("/api/admissions", admissionRoutes);
 
 // 🔐 Admin
-app.use("/api/admin/admissions", adminAdmissionRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
+app.use("/api/admin/admissions", adminAdmissionRoutes);
 
+// Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Backend is alive 🚀" });
+  res.json({
+    status: "ok",
+    message: "Backend is alive 🚀",
+  });
 });
+
+/* =======================
+   ERROR HANDLER (LAST)
+======================= */
+app.use(errorHandler);
 
 export default app;

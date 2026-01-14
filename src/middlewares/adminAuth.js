@@ -3,14 +3,25 @@ import User from "../models/User.js";
 
 export const adminAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader =
+      req.headers.authorization || req.headers.Authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "No token provided" });
+      return res.status(401).json({
+        message: "Authentication token missing",
+      });
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({
+        message: "Session expired. Please login again.",
+      });
+    }
 
     const admin = await User.findOne({
       _id: decoded.id,
@@ -18,12 +29,17 @@ export const adminAuth = async (req, res, next) => {
     }).select("-password");
 
     if (!admin) {
-      return res.status(401).json({ message: "Admin not found" });
+      return res.status(401).json({
+        message: "Admin not authorized",
+      });
     }
 
     req.admin = admin;
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+    console.error("adminAuth error:", err);
+    res.status(500).json({
+      message: "Authentication failed",
+    });
   }
 };

@@ -1,9 +1,10 @@
 export const adminOnly = (req, res, next) => {
-  if (!req.user || req.user.role !== "admin") {
+  // adminAuth MUST run before this middleware
+  if (!req.admin || req.admin.role !== "admin") {
     return res.status(403).json({
-      success: false,
       message: "Admin access only",
     });
   }
+
   next();
 };

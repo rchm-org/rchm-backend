@@ -1,29 +1,46 @@
 import multer from "multer";
 import path from "path";
+import crypto from "crypto";
 
+// ================= CONFIG =================
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "application/pdf",
+];
+
+// ================= STORAGE =================
 const storage = multer.diskStorage({
-  destination: "uploads/",
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+
   filename: (req, file, cb) => {
-    cb(
-      null,
-      `${Date.now()}-${file.fieldname}${path.extname(file.originalname)}`
-    );
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = crypto.randomBytes(16).toString("hex");
+    cb(null, `${safeName}${ext}`);
   },
 });
 
+// ================= FILE FILTER =================
 const fileFilter = (req, file, cb) => {
-  const allowed = ["image/jpeg", "image/png", "application/pdf"];
-  if (!allowed.includes(file.mimetype)) {
-    cb(new Error("Only JPG, PNG, PDF allowed"), false);
-  } else {
-    cb(null, true);
+  if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    return cb(
+      new Error("Invalid file type. Only JPG, PNG, and PDF files are allowed."),
+      false
+    );
   }
+
+  cb(null, true);
 };
 
+// ================= MULTER INSTANCE =================
 export const upload = multer({
   storage,
-  fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // ✅ 5MB
+    fileSize: MAX_FILE_SIZE,
   },
+  fileFilter,
 });
