@@ -1,46 +1,56 @@
 import express from "express";
 import cors from "cors";
-import path from "path";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import morgan from "morgan";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-// Routes
-import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import admissionRoutes from "./routes/admissionRoutes.js";
+import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import adminAdmissionRoutes from "./routes/adminAdmissionRoutes.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
+
+dotenv.config();
 
 const app = express();
 
 /* =======================
-   CORS (PRODUCTION SAFE)
+   DATABASE
 ======================= */
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://rchm-admissions-frontend.vercel.app",
-];
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => {
+    console.error("❌ MongoDB error:", err.message);
+    process.exit(1);
+  });
+
+/* =======================
+   SECURITY
+======================= */
+app.use(helmet());
 
 app.use(
   cors({
-    origin(origin, callback) {
-      // Allow server-to-server & tools
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error(`CORS blocked: ${origin}`));
-    },
+    origin: process.env.CLIENT_URL,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-app.use(express.json());
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+
+app.use(limiter);
 
 /* =======================
-   STATIC FILES
+   MIDDLEWARE
 ======================= */
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan("dev"));
 
 /* =======================
    ROUTES
@@ -50,18 +60,8 @@ app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin/admissions", adminAdmissionRoutes);
 
 /* =======================
-   HEALTH
+   ERROR HANDLER
 ======================= */
-app.get("/api/health", (_, res) => {
-  res.json({ status: "ok", message: "Backend alive 🚀" });
-});
-
-/* =======================
-   ERROR HANDLER (MANDATORY)
-======================= */
-app.use((err, req, res, next) => {
-  console.error("❌ ERROR:", err.message);
-  res.status(500).json({ message: err.message || "Server error" });
-});
+app.use(errorHandler);
 
 export default app;
