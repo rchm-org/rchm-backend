@@ -1,3 +1,4 @@
+import "dotenv/config";
 import multer from "multer";
 import multerS3 from "multer-s3";
 import { S3Client } from "@aws-sdk/client-s3";
@@ -21,12 +22,11 @@ const fileFilter = (_req, file, cb) => {
   }
 };
 
-// S3 storage via multer-s3
+// S3 storage via multer-s3 (v3 API — bucket and key must be callback functions)
 const storage = multerS3({
   s3,
-  bucket: process.env.AWS_BUCKET_NAME,
+  bucket: (_req, _file, cb) => cb(null, process.env.AWS_BUCKET_NAME),
   contentType: multerS3.AUTO_CONTENT_TYPE,
-  // Store under admissions/ prefix with unique timestamped name
   key: (_req, file, cb) => {
     const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
     cb(null, `admissions/${uniqueName}`);
