@@ -12,7 +12,9 @@ const admissionSchema = new mongoose.Schema(
       default: "pending",
     },
     documents: {
-      type: String,
+      marksheet: { type: String, default: null }, // AWS S3 URL
+      idDocument: { type: String, default: null }, // Aadhaar / PAN / DL
+      photograph: { type: String, default: null }, // Passport-size photo
     },
   },
   { timestamps: true }

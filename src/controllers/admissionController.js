@@ -6,9 +6,16 @@ export const createAdmission = async (req, res) => {
   try {
     const data = req.body;
 
+    // req.files is a dict keyed by fieldname when using upload.fields()
+    const files = req.files ?? {};
+
     const admission = await Admission.create({
       ...data,
-      documents: req.file?.location ?? null, // full AWS S3 public URL
+      documents: {
+        marksheet: files.marksheet?.[0]?.location ?? null,
+        idDocument: files.idDocument?.[0]?.location ?? null,
+        photograph: files.photograph?.[0]?.location ?? null,
+      },
     });
 
     res.status(201).json(admission);
@@ -20,13 +27,8 @@ export const createAdmission = async (req, res) => {
 export const getAdmissions = async (req, res) => {
   try {
     const { status } = req.query;
-
     const query = status ? { status } : {};
-
-    const admissions = await Admission.find(query).sort({
-      createdAt: -1,
-    });
-
+    const admissions = await Admission.find(query).sort({ createdAt: -1 });
     res.json(admissions);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch admissions" });

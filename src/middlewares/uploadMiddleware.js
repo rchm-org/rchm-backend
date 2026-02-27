@@ -3,9 +3,9 @@ import multer from "multer";
 import multerS3 from "multer-s3";
 import { S3Client } from "@aws-sdk/client-s3";
 
-// AWS S3 client — credentials and region from env
+// AWS S3 client
 const s3 = new S3Client({
-  region: process.env.AWS_REGION, // e.g. ap-south-1 (Mumbai)
+  region: process.env.AWS_REGION,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -22,19 +22,20 @@ const fileFilter = (_req, file, cb) => {
   }
 };
 
-// S3 storage via multer-s3 (v3 API — bucket and key must be callback functions)
+// S3 storage — files stored under admissions/<fieldname>/<timestamp>-<original>
 const storage = multerS3({
   s3,
   bucket: (_req, _file, cb) => cb(null, process.env.AWS_BUCKET_NAME),
   contentType: multerS3.AUTO_CONTENT_TYPE,
   key: (_req, file, cb) => {
     const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
-    cb(null, `admissions/${uniqueName}`);
+    cb(null, `admissions/${file.fieldname}/${uniqueName}`);
   },
 });
 
+// Multer instance — used as upload.fields([...]) in the route
 export const upload = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB per file
   fileFilter,
 });
