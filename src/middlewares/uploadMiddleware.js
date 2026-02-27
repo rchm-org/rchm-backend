@@ -1,38 +1,39 @@
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import { v2 as cloudinary } from "cloudinary";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
 
-// Cloudinary config (env vars)
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+// Resolve __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure the uploads directory exists
+const uploadsDir = path.join(__dirname, "../../uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Disk storage — unique filename, original extension preserved
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
+    cb(null, uniqueName);
+  },
 });
 
-// File filter (same logic, cloud-safe)
-const fileFilter = (req, file, cb) => {
+// Only allow images and PDFs
+const fileFilter = (_req, file, cb) => {
   const allowed = ["image/jpeg", "image/png", "application/pdf"];
   if (!allowed.includes(file.mimetype)) {
-    cb(new Error("Invalid file type"), false);
+    cb(new Error("Invalid file type. Only JPEG, PNG and PDF are allowed."), false);
   } else {
     cb(null, true);
   }
 };
 
-// Cloudinary storage
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "rchm_uploads",
-    resource_type: "auto", // images + pdfs
-    public_id: (req, file) =>
-      `${Date.now()}-${file.originalname}`,
-  },
-});
-
-// Export upload middleware
 export const upload = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
   fileFilter,
 });

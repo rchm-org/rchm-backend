@@ -6,10 +6,9 @@ export const createAdmission = async (req, res) => {
   try {
     const data = req.body;
 
-    // Cloudinary stores the secure URL on req.file.path
     const admission = await Admission.create({
       ...data,
-      documents: req.file?.path ?? null,
+      documents: req.file?.filename ?? null,
     });
 
     res.status(201).json(admission);
