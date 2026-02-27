@@ -51,11 +51,11 @@ export const generateAdmissionPDF = async (admission) => {
             }
 
             doc.fillColor("#ffffff")
-                .fontSize(22).font("Helvetica-Bold")
-                .text("Royal College of Hospitality & Management", 125, 30);
+                .fontSize(18).font("Helvetica-Bold")
+                .text("Royal College of Hospitality & Management", 120, 32);
 
-            doc.fontSize(12).font("Helvetica")
-                .text("Official Application Receipt", 125, 60);
+            doc.fontSize(11).font("Helvetica")
+                .text("Official Application Receipt", 120, 56);
 
             // --- Reset Color ---
             doc.fillColor("#1e293b");
@@ -71,8 +71,7 @@ export const generateAdmissionPDF = async (admission) => {
                 // Draw image
                 try {
                     doc.image(photoBuffer, photoX, photoY, {
-                        width: photoWidth,
-                        height: photoHeight,
+                        fit: [photoWidth, photoHeight],
                         align: 'center',
                         valign: 'center'
                     });
