@@ -26,6 +26,7 @@ const fileFilter = (_req, file, cb) => {
 const storage = multerS3({
   s3,
   bucket: (_req, _file, cb) => cb(null, process.env.AWS_BUCKET_NAME),
+  acl: "public-read",
   contentType: multerS3.AUTO_CONTENT_TYPE,
   key: (_req, file, cb) => {
     const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;

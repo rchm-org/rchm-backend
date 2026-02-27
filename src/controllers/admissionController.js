@@ -30,7 +30,9 @@ export const createAdmission = async (req, res) => {
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: pdfKey,
       Body: pdfBuffer,
-      ContentType: "application/pdf"
+      ContentType: "application/pdf",
+      ACL: "public-read",
+      ContentDisposition: "inline"
     }));
 
     // S3 URL format
