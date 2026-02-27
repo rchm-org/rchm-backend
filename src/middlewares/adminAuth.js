@@ -18,6 +18,11 @@ export const adminAuth = async (req, res, next) => {
       return res.status(401).json({ message: "User not found" });
     }
 
+    // Enforce admin role directly in the auth middleware
+    if (user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access only" });
+    }
+
     req.user = user;
     next();
   } catch (err) {

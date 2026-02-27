@@ -8,23 +8,10 @@ import { adminOnly } from "../middlewares/adminMiddleware.js";
 
 const router = express.Router();
 
+// Apply auth + role check to ALL routes in this router
 router.use(adminAuth, adminOnly);
 
 router.get("/", getAdmissions);
-router.patch("/:id/status", adminAuth, async (req, res) => {
-  const { status } = req.body;
-
-  if (!["pending", "approved", "archived"].includes(status)) {
-    return res.status(400).json({ message: "Invalid status" });
-  }
-
-  const updated = await Admission.findByIdAndUpdate(
-    req.params.id,
-    { status },
-    { new: true }
-  );
-
-  res.json(updated);
-});
+router.patch("/:id/status", updateAdmissionStatus);
 
 export default router;

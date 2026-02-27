@@ -1,14 +1,21 @@
 import Admission from "../models/Admission.js";
 
+const VALID_STATUSES = ["pending", "approved", "archived"];
+
 export const createAdmission = async (req, res) => {
-  const data = req.body;
+  try {
+    const data = req.body;
 
-  const admission = await Admission.create({
-    ...data,
-    documents: req.file?.filename,
-  });
+    // Cloudinary stores the secure URL on req.file.path
+    const admission = await Admission.create({
+      ...data,
+      documents: req.file?.path ?? null,
+    });
 
-  res.status(201).json(admission);
+    res.status(201).json(admission);
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to create admission" });
+  }
 };
 
 export const getAdmissions = async (req, res) => {
@@ -28,13 +35,25 @@ export const getAdmissions = async (req, res) => {
 };
 
 export const updateAdmissionStatus = async (req, res) => {
-  const { status } = req.body;
+  try {
+    const { status } = req.body;
 
-  const updated = await Admission.findByIdAndUpdate(
-    req.params.id,
-    { status },
-    { new: true }
-  );
+    if (!VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
 
-  res.json(updated);
+    const updated = await Admission.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Admission not found" });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to update status" });
+  }
 };
