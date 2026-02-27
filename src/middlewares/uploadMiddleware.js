@@ -2,13 +2,12 @@ import multer from "multer";
 import multerS3 from "multer-s3";
 import { S3Client } from "@aws-sdk/client-s3";
 
-// Backblaze B2 is S3-compatible — point the SDK at B2's S3 endpoint
+// AWS S3 client — credentials and region from env
 const s3 = new S3Client({
-  endpoint: process.env.B2_ENDPOINT, // e.g. https://s3.us-west-004.backblazeb2.com
-  region: process.env.B2_REGION,     // e.g. us-west-004
+  region: process.env.AWS_REGION, // e.g. ap-south-1 (Mumbai)
   credentials: {
-    accessKeyId: process.env.B2_KEY_ID,
-    secretAccessKey: process.env.B2_APP_KEY,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
@@ -22,12 +21,12 @@ const fileFilter = (_req, file, cb) => {
   }
 };
 
-// B2 storage via multer-s3
+// S3 storage via multer-s3
 const storage = multerS3({
   s3,
-  bucket: process.env.B2_BUCKET_NAME,
+  bucket: process.env.AWS_BUCKET_NAME,
   contentType: multerS3.AUTO_CONTENT_TYPE,
-  // Files are public-readable (set bucket to public in B2 dashboard)
+  // Store under admissions/ prefix with unique timestamped name
   key: (_req, file, cb) => {
     const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
     cb(null, `admissions/${uniqueName}`);
