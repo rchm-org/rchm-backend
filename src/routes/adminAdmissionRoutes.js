@@ -4,12 +4,11 @@ import {
   updateAdmissionStatus,
 } from "../controllers/admissionController.js";
 import { adminAuth } from "../middlewares/adminAuth.js";
-import { adminOnly } from "../middlewares/adminMiddleware.js";
 
 const router = express.Router();
 
-// Apply auth + role check to ALL routes in this router
-router.use(adminAuth, adminOnly);
+// adminAuth already verifies JWT and enforces admin role in one step
+router.use(adminAuth);
 
 router.get("/", getAdmissions);
 router.patch("/:id/status", updateAdmissionStatus);
