@@ -85,7 +85,7 @@ export const generateAdmissionPDF = async (admission) => {
             } else {
                 // Placeholder
                 doc.rect(photoX, photoY, photoWidth, photoHeight).strokeColor("#cbd5e1").lineWidth(1).stroke();
-                doc.fontSize(10).fillColor("#94a3b8").text("No Photo\nProvided", photoX + 25, photoY + 45, { align: "center" });
+                doc.fontSize(10).fillColor("#94a3b8").text("No Photo\nProvided", photoX, photoY + 45, { width: photoWidth, align: "center" });
             }
 
             // --- Content Region (Left Side) ---
