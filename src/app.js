@@ -4,23 +4,45 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
 import admissionRoutes from "./routes/admissionRoutes.js";
 import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import adminAdmissionRoutes from "./routes/adminAdmissionRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import User from "./models/User.js";
 
 dotenv.config();
 
 const app = express();
 
 /* =======================
-   DATABASE
+   DATABASE + AUTO-SEED
 ======================= */
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
+  .then(async () => {
+    console.log("✅ MongoDB connected");
+
+    // Auto-create admin account if it doesn't exist yet
+    try {
+      const email = process.env.ADMIN_EMAIL;
+      const password = process.env.ADMIN_PASSWORD;
+      if (email && password) {
+        const exists = await User.findOne({ email });
+        if (!exists) {
+          const hashed = await bcrypt.hash(password, 10);
+          await User.create({ email, password: hashed, role: "admin" });
+          console.log("✅ Admin account created:", email);
+        } else {
+          console.log("ℹ️  Admin account already exists:", email);
+        }
+      }
+    } catch (seedErr) {
+      console.error("⚠️  Auto-seed failed:", seedErr.message);
+    }
+  })
   .catch((err) => {
     console.error("❌ MongoDB error:", err.message);
     process.exit(1);
