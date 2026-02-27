@@ -25,6 +25,16 @@ mongoose
   .then(async () => {
     console.log("✅ MongoDB connected");
 
+    // Hotfix: Drop legacy referenceId unique index that causes 500 errors on new admissions
+    try {
+      await mongoose.connection.collection("admissions").dropIndex("referenceId_1");
+      console.log("🧹 Dropped legacy referenceId_1 index");
+    } catch (idxErr) {
+      if (idxErr.code !== 27) { // 27 = IndexNotFound
+        console.error("⚠️ Could not drop referenceId_1 index:", idxErr.message);
+      }
+    }
+
     // Auto-create admin account if it doesn't exist yet
     try {
       const email = process.env.ADMIN_EMAIL;
