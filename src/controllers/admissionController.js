@@ -1,4 +1,7 @@
 import Admission from "../models/Admission.js";
+import { s3 } from "../middlewares/uploadMiddleware.js";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { generateAdmissionPDF } from "../utils/generatePdf.js";
 
 const VALID_STATUSES = ["pending", "approved", "archived"];
 
@@ -9,7 +12,7 @@ export const createAdmission = async (req, res) => {
     // req.files is a dict keyed by fieldname when using upload.fields()
     const files = req.files ?? {};
 
-    const admission = await Admission.create({
+    let admission = await Admission.create({
       ...data,
       documents: {
         marksheet: files.marksheet?.[0]?.location ?? null,
@@ -17,6 +20,28 @@ export const createAdmission = async (req, res) => {
         photograph: files.photograph?.[0]?.location ?? null,
       },
     });
+
+    // Generate PDF receipt buffer
+    const pdfBuffer = await generateAdmissionPDF(admission);
+    const pdfKey = `admissions/receipts/${admission._id}-receipt.pdf`;
+
+    // Upload PDF directly to S3
+    await s3.send(new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: pdfKey,
+      Body: pdfBuffer,
+      ContentType: "application/pdf"
+    }));
+
+    // S3 URL format
+    const applicationPdfUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${pdfKey}`;
+
+    // Update admission record with the PDF link
+    admission = await Admission.findByIdAndUpdate(
+      admission._id,
+      { applicationPdf: applicationPdfUrl },
+      { new: true }
+    );
 
     res.status(201).json(admission);
   } catch (err) {

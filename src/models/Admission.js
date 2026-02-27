@@ -16,6 +16,7 @@ const admissionSchema = new mongoose.Schema(
       idDocument: { type: String, default: null }, // Aadhaar / PAN / DL
       photograph: { type: String, default: null }, // Passport-size photo
     },
+    applicationPdf: { type: String, default: null }, // Auto-generated receipt S3 URL
   },
   { timestamps: true }
 );
