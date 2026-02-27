@@ -17,6 +17,7 @@ const admissionSchema = new mongoose.Schema(
       photograph: { type: String, default: null }, // Passport-size photo
     },
     applicationPdf: { type: String, default: null }, // Auto-generated receipt S3 URL
+    applicationId: { type: String, required: true, unique: true }, // Custom RCHM-XXXXX ID
   },
   { timestamps: true }
 );

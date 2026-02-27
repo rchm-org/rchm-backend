@@ -12,7 +12,13 @@ export const createAdmission = async (req, res) => {
     // req.files is a dict keyed by fieldname when using upload.fields()
     const files = req.files ?? {};
 
+    // Generate custom application ID format: RCHM-2026-XXXXX
+    const randomCode = Math.floor(10000 + Math.random() * 90000);
+    const year = new Date().getFullYear();
+    const applicationId = `RCHM-${year}-${randomCode}`;
+
     let admission = await Admission.create({
+      applicationId,
       ...data,
       documents: {
         marksheet: files.marksheet?.[0]?.location ?? null,
@@ -31,7 +37,6 @@ export const createAdmission = async (req, res) => {
       Key: pdfKey,
       Body: pdfBuffer,
       ContentType: "application/pdf",
-      ACL: "public-read",
       ContentDisposition: "inline"
     }));
 

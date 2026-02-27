@@ -1,48 +1,117 @@
 import PDFDocument from "pdfkit";
 
 /**
+ * Helper to fetch image buffer from a URL
+ */
+const fetchImageBuffer = async (url) => {
+    if (!url) return null;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const arrayBuffer = await response.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+    } catch (err) {
+        console.error("Failed to fetch image for PDF:", err);
+        return null;
+    }
+};
+
+/**
  * Generates a PDF receipt buffer for an admission application
  * @param {Object} admission The saved admission document
  * @returns {Promise<Buffer>} The generated PDF as a buffer
  */
-export const generateAdmissionPDF = (admission) => {
-    return new Promise((resolve, reject) => {
+export const generateAdmissionPDF = async (admission) => {
+    return new Promise(async (resolve, reject) => {
         try {
-            const doc = new PDFDocument({ margin: 50 });
+            const doc = new PDFDocument({ margin: 50, size: "A4" });
             const buffers = [];
             doc.on("data", buffers.push.bind(buffers));
             doc.on("end", () => resolve(Buffer.concat(buffers)));
             doc.on("error", reject);
 
-            // Header
-            doc.fontSize(20).font("Helvetica-Bold")
-                .text("Royal College of Hospitality & Management", { align: "center" });
-            doc.moveDown(0.5);
-            doc.fontSize(14).font("Helvetica")
-                .text("Application Receipt", { align: "center" });
-            doc.moveDown(2);
+            // --- Download Photo if available ---
+            let photoBuffer = null;
+            if (admission.documents?.photograph) {
+                photoBuffer = await fetchImageBuffer(admission.documents.photograph);
+            }
 
-            // Content
-            doc.fontSize(12);
+            // --- Header Region ---
+            doc.rect(0, 0, doc.page.width, 100).fill("#0f172a"); // Dark slate background
+
+            doc.fillColor("#ffffff")
+                .fontSize(22).font("Helvetica-Bold")
+                .text("Royal College of Hospitality & Management", 50, 30);
+
+            doc.fontSize(12).font("Helvetica")
+                .text("Official Application Receipt", 50, 60);
+
+            // --- Reset Color ---
+            doc.fillColor("#1e293b");
+
+            // --- Photo Placeholder (Top Right) ---
+            // We draw the photo below the header, aligned to the right.
+            const photoX = doc.page.width - 150; // 50px right margin + 100px width
+            const photoY = 130;
+            const photoWidth = 100;
+            const photoHeight = 120; // 5x6 aspect ratio approx
+
+            if (photoBuffer) {
+                // Draw image
+                try {
+                    doc.image(photoBuffer, photoX, photoY, {
+                        width: photoWidth,
+                        height: photoHeight,
+                        align: 'center',
+                        valign: 'center'
+                    });
+                    // Draw a border around it
+                    doc.rect(photoX, photoY, photoWidth, photoHeight).strokeColor("#cbd5e1").lineWidth(1).stroke();
+                } catch (imgErr) {
+                    console.error("PDF Image Error:", imgErr);
+                    doc.rect(photoX, photoY, photoWidth, photoHeight).strokeColor("#cbd5e1").lineWidth(1).stroke();
+                    doc.fontSize(10).text("Photo Error", photoX + 20, photoY + 50);
+                }
+            } else {
+                // Placeholder
+                doc.rect(photoX, photoY, photoWidth, photoHeight).strokeColor("#cbd5e1").lineWidth(1).stroke();
+                doc.fontSize(10).fillColor("#94a3b8").text("No Photo\nProvided", photoX + 25, photoY + 45, { align: "center" });
+            }
+
+            // --- Content Region (Left Side) ---
+            doc.fillColor("#1e293b");
+            const contentStartY = 130;
+            doc.y = contentStartY;
+            doc.x = 50;
 
             const addField = (label, value) => {
-                doc.font("Helvetica-Bold").text(`${label}: `, { continued: true })
-                    .font("Helvetica").text(value || "N/A");
-                doc.moveDown(0.5);
+                doc.fillColor("#64748b").fontSize(10).font("Helvetica-Bold").text(label.toUpperCase());
+                doc.moveDown(0.2);
+                doc.fillColor("#0f172a").fontSize(12).font("Helvetica").text(value || "N/A");
+                doc.moveDown(1);
             };
 
-            addField("Application ID", admission._id.toString());
-            addField("Date Submitted", new Date(admission.createdAt).toLocaleString("en-IN"));
-            doc.moveDown(1);
+            doc.fontSize(16).font("Helvetica-Bold").fillColor("#0f172a").text("Applicant Details");
+            doc.moveDown(1.5);
 
+            addField("Application ID", admission.applicationId);
+            addField("Date Submitted", new Date(admission.createdAt).toLocaleString("en-IN", {
+                day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+            }));
             addField("Full Name", admission.name);
             addField("Email Address", admission.email);
             addField("Phone Number", admission.phone);
             addField("Course Selected", admission.course);
 
-            doc.moveDown(1);
-            doc.font("Helvetica-Oblique")
-                .text("Application status is pending. You can track this using your email address.");
+            // --- Footer ---
+            doc.moveDown(2);
+            doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).strokeColor("#e2e8f0").stroke();
+            doc.moveDown(1.5);
+
+            doc.fontSize(10).font("Helvetica-Oblique").fillColor("#64748b")
+                .text("This is an electronically generated receipt. " +
+                    "Your application status is currently pending review. " +
+                    "Our admissions team will contact you shortly.", { align: "center", width: doc.page.width - 100 });
 
             doc.end();
         } catch (err) {
