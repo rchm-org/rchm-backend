@@ -1,4 +1,7 @@
 import PDFDocument from "pdfkit";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 /**
  * Helper to fetch image buffer from a URL
@@ -39,12 +42,20 @@ export const generateAdmissionPDF = async (admission) => {
             // --- Header Region ---
             doc.rect(0, 0, doc.page.width, 100).fill("#0f172a"); // Dark slate background
 
+            const __filename = fileURLToPath(import.meta.url);
+            const __dirname = path.dirname(__filename);
+            const logoPath = path.join(__dirname, "logo.png");
+
+            if (fs.existsSync(logoPath)) {
+                doc.image(logoPath, 50, 20, { width: 60, height: 60 });
+            }
+
             doc.fillColor("#ffffff")
                 .fontSize(22).font("Helvetica-Bold")
-                .text("Royal College of Hospitality & Management", 50, 30);
+                .text("Royal College of Hospitality & Management", 125, 30);
 
             doc.fontSize(12).font("Helvetica")
-                .text("Official Application Receipt", 50, 60);
+                .text("Official Application Receipt", 125, 60);
 
             // --- Reset Color ---
             doc.fillColor("#1e293b");
