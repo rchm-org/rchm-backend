@@ -8,7 +8,7 @@ export const createAdmission = async (req, res) => {
 
     const admission = await Admission.create({
       ...data,
-      documents: req.file?.filename ?? null,
+      documents: req.file?.location ?? null, // full B2 public URL
     });
 
     res.status(201).json(admission);

@@ -1,24 +1,14 @@
 import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs";
+import multerS3 from "multer-s3";
+import { S3Client } from "@aws-sdk/client-s3";
 
-// Resolve __dirname in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Ensure the uploads directory exists
-const uploadsDir = path.join(__dirname, "../../uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Disk storage — unique filename, original extension preserved
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (_req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
-    cb(null, uniqueName);
+// Backblaze B2 is S3-compatible — point the SDK at B2's S3 endpoint
+const s3 = new S3Client({
+  endpoint: process.env.B2_ENDPOINT, // e.g. https://s3.us-west-004.backblazeb2.com
+  region: process.env.B2_REGION,     // e.g. us-west-004
+  credentials: {
+    accessKeyId: process.env.B2_KEY_ID,
+    secretAccessKey: process.env.B2_APP_KEY,
   },
 });
 
@@ -31,6 +21,18 @@ const fileFilter = (_req, file, cb) => {
     cb(null, true);
   }
 };
+
+// B2 storage via multer-s3
+const storage = multerS3({
+  s3,
+  bucket: process.env.B2_BUCKET_NAME,
+  contentType: multerS3.AUTO_CONTENT_TYPE,
+  // Files are public-readable (set bucket to public in B2 dashboard)
+  key: (_req, file, cb) => {
+    const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
+    cb(null, `admissions/${uniqueName}`);
+  },
+});
 
 export const upload = multer({
   storage,
